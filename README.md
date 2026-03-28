@@ -2,6 +2,9 @@
 
 A field-level audit trail viewer for Salesforce record pages. Drop it onto any record page to visualise field history changes in a clean, colour-coded timeline.
 
+<img width="967" height="632" alt="image" src="https://github.com/user-attachments/assets/93f6a560-aba9-4fb4-af04-4cfda2f94301" />
+
+
 ![Salesforce](https://img.shields.io/badge/Salesforce-00A1E0?style=flat&logo=salesforce&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -66,10 +69,6 @@ git clone https://github.com/cyrilduv/sf-field-audit-timeline.git
 cd sf-field-audit-timeline
 sf project deploy start --source-dir force-app --target-org YOUR_ORG_ALIAS --wait 10
 ```
-
-### Option 3 — Install as unlocked package
-
-*(Not yet available — coming soon)*
 
 ## Post-Installation Setup
 
