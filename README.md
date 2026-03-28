@@ -8,9 +8,6 @@ A field-level audit trail viewer for Salesforce record pages. Drop it onto any r
 ![Salesforce](https://img.shields.io/badge/Salesforce-00A1E0?style=flat&logo=salesforce&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-<a href="https://githubsfdeploy.herokuapp.com?owner=cyrilduv&repo=sf-field-audit-timeline&ref=main">
-  <img alt="Deploy to Salesforce" src="https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png">
-</a>
 
 ---
 
@@ -60,7 +57,9 @@ A field-level audit trail viewer for Salesforce record pages. Drop it onto any r
 
 ### Option 1 — One-click deploy
 
-Click the **Deploy to Salesforce** button above. It will prompt you to log in to your org and deploy all metadata.
+<a href="https://githubsfdeploy.herokuapp.com?owner=cyrilduv&repo=sf-field-audit-timeline&ref=main">
+  <img alt="Deploy to Salesforce" src="https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png">
+</a>
 
 ### Option 2 — Salesforce CLI
 
