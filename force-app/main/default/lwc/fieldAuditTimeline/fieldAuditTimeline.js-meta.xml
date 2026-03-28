@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="title" type="String" default="Field Audit Timeline" label="Card Title"/>
+            <property name="objectApiName" type="String" label="Object API Name" required="true"/>
+            <property name="trackedFields" type="String" label="Tracked Fields (comma-separated, blank = all)"/>
+            <property name="auditWindowDays" type="Integer" default="30" label="Audit Window (days)"/>
+            <property name="maxRows" type="Integer" default="200" label="Max Rows"/>
+            <property name="enableSearch" type="Boolean" default="false" label="Enable Search Bar"/>
+            <property name="enableExport" type="Boolean" default="false" label="Enable CSV Export"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

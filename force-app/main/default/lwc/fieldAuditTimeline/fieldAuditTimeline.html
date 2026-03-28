@@ -1,0 +1,136 @@
+<template>
+    <!-- Loading state -->
+    <template lwc:if={isLoading}>
+        <lightning-spinner alternative-text="Loading audit entries" size="medium"></lightning-spinner>
+    </template>
+
+    <!-- Error state -->
+    <template lwc:if={error}>
+        <lightning-card title={title} icon-name="standard:record">
+            <div class="slds-p-around_medium">
+                <lightning-icon icon-name="utility:error" alternative-text="Error" size="small"></lightning-icon>
+                <span class="slds-m-left_x-small">{error}</span>
+            </div>
+        </lightning-card>
+    </template>
+
+    <!-- Main content -->
+    <template lwc:if={showContent}>
+        <lightning-card title={title} icon-name="standard:record">
+
+            <!-- Header row with object pill -->
+            <div slot="actions">
+                <span class="object-pill">{objectPillLabel}</span>
+            </div>
+
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+
+                <!-- Summary stat row -->
+                <div class="stat-row">
+                    <div class="stat-box">
+                        <div class="stat-value">{totalChanges}</div>
+                        <div class="stat-label">Total Changes</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">{fieldsTracked}</div>
+                        <div class="stat-label">Fields Tracked</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">{usersInvolved}</div>
+                        <div class="stat-label">Users Involved</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">{auditWindowLabel}</div>
+                        <div class="stat-label">Audit Window</div>
+                    </div>
+                </div>
+
+                <!-- Toolbar row -->
+                <div class="toolbar-row">
+                    <template lwc:if={enableSearch}>
+                        <div class="toolbar-left">
+                            <lightning-input
+                                type="search"
+                                label="Search"
+                                variant="label-hidden"
+                                placeholder="Search entries..."
+                                onchange={handleSearchChange}
+                            ></lightning-input>
+                        </div>
+                    </template>
+                    <div class="toolbar-middle">
+                        <lightning-combobox
+                            label="Filter by field"
+                            variant="label-hidden"
+                            placeholder="All Fields"
+                            options={fieldOptions}
+                            value={fieldFilter}
+                            onchange={handleFieldFilterChange}
+                        ></lightning-combobox>
+                    </div>
+                    <template lwc:if={enableExport}>
+                        <div class="toolbar-right">
+                            <lightning-button
+                                label="Export CSV"
+                                icon-name="utility:download"
+                                onclick={handleExportCsv}
+                            ></lightning-button>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Timeline list -->
+                <template lwc:if={hasEntries}>
+                    <div class="timeline-container">
+                        <template for:each={groupedEntries} for:item="group">
+                            <div key={group.dateLabel} class="date-group">
+                                <div class="date-separator">{group.dateLabel}</div>
+                                <template for:each={group.entries} for:item="entry">
+                                    <div key={entry.id} class="timeline-entry" style={entry.borderStyle}>
+                                        <div class="entry-header">
+                                            <div class="entry-icon-wrapper">
+                                                <span class="entry-icon" style={entry.iconBgStyle}>{entry.iconSymbol}</span>
+                                            </div>
+                                            <span class="field-label">{entry.fieldLabel}</span>
+                                            <span class="entry-timestamp">{entry.formattedTime}</span>
+                                        </div>
+                                        <div class="diff-row">
+                                            <template lwc:if={entry.hasOldValue}>
+                                                <span class="diff-old">{entry.oldValue}</span>
+                                            </template>
+                                            <template lwc:if={entry.showArrow}>
+                                                <span class="diff-arrow">&rarr;</span>
+                                            </template>
+                                            <template lwc:if={entry.hasNewValue}>
+                                                <span class="diff-new">{entry.newValue}</span>
+                                            </template>
+                                            <template lwc:if={entry.isCleared}>
+                                                <span class="diff-cleared">— cleared</span>
+                                            </template>
+                                        </div>
+                                        <div class="entry-footer">
+                                            <span class="change-type-tag" style={entry.tagStyle}>{entry.changeType}</span>
+                                            <span class="user-chip">
+                                                <span class="avatar-circle">{entry.changedByInitials}</span>
+                                                <span class="user-name">{entry.changedByName}</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Empty state -->
+                <template lwc:if={isEmpty}>
+                    <div class="empty-state">
+                        <lightning-icon icon-name="utility:info" size="large" alternative-text="No data"></lightning-icon>
+                        <p class="slds-m-top_small">No audit entries match your filters.</p>
+                    </div>
+                </template>
+
+            </div>
+        </lightning-card>
+    </template>
+</template>
