@@ -59,6 +59,13 @@ public with sharing class FieldAuditTimelineController {
             String fieldName = (String) rec.get('Field');
             Object oldValue = rec.get('OldValue');
             Object newValue = rec.get('NewValue');
+
+            // Skip duplicate lookup entries that show raw IDs instead of names.
+            // Salesforce logs two history rows for lookup changes: one with IDs, one with names.
+            if (looksLikeSalesforceId(oldValue) || looksLikeSalesforceId(newValue)) {
+                continue;
+            }
+
             Datetime createdDate = (Datetime) rec.get('CreatedDate');
             String createdByName = (String) rec.getSObject('CreatedBy').get('Name');
 
@@ -158,6 +165,12 @@ public with sharing class FieldAuditTimelineController {
         return fullName.length() >= 2
             ? fullName.substring(0, 2).toUpperCase()
             : fullName.toUpperCase();
+    }
+
+    private static Boolean looksLikeSalesforceId(Object value) {
+        if (value == null) return false;
+        String str = String.valueOf(value);
+        return (str.length() == 15 || str.length() == 18) && Pattern.matches('[a-zA-Z0-9]{15,18}', str);
     }
 
     private static String classifyChangeType(String fieldName, Object oldValue, Object newValue) {
