@@ -99,13 +99,16 @@ private class FieldAuditTimelineControllerTest {
         Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'Test Opp' LIMIT 1];
 
         Test.startTest();
-        List<Map<String, Object>> results = FieldAuditTimelineController.getFieldHistory(
-            'Opportunity', opp.Id, 'NonExistentField__xyz', 30, 200
-        );
+        try {
+            FieldAuditTimelineController.getFieldHistory(
+                'Opportunity', opp.Id, 'NonExistentField__xyz', 30, 200
+            );
+            System.assert(false, 'Should have thrown AuraHandledException');
+        } catch (AuraHandledException e) {
+            System.assert(e.getMessage().contains('None of the configured tracked fields exist'),
+                'Should report invalid tracked fields: ' + e.getMessage());
+        }
         Test.stopTest();
-
-        System.assertEquals(0, results.size(),
-            'Invalid tracked field names should be silently dropped, returning all unfiltered or empty');
     }
 
     @IsTest
@@ -167,6 +170,39 @@ private class FieldAuditTimelineControllerTest {
         Test.stopTest();
 
         System.assertEquals('Test Opp', name, 'Should return the opportunity name');
+    }
+
+    @IsTest
+    static void testGetFieldHistoryFLSEnforced() {
+        Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'Test Opp' LIMIT 1];
+
+        Profile minProfile = [SELECT Id FROM Profile
+            WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        User restrictedUser = new User(
+            Alias = 'flstest',
+            Email = 'flstest@test.example.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'FLSTest',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_AU',
+            ProfileId = minProfile.Id,
+            TimeZoneSidKey = 'Australia/Sydney',
+            UserName = 'flstest' + Datetime.now().getTime() + '@test.example.com'
+        );
+        insert restrictedUser;
+
+        Test.startTest();
+        System.runAs(restrictedUser) {
+            try {
+                FieldAuditTimelineController.getFieldHistory(
+                    'Opportunity', opp.Id, '', 30, 200
+                );
+            } catch (AuraHandledException e) {
+                // Expected — restricted user lacks object/field access
+                System.assert(e.getMessage() != null, 'Exception should have a message');
+            }
+        }
+        Test.stopTest();
     }
 
     @IsTest

@@ -37,6 +37,11 @@ public with sharing class FieldAuditTimelineController {
                     fieldList.add(trimmed);
                 }
             }
+            if (fieldList.isEmpty()) {
+                throw new AuraHandledException(
+                    'None of the configured tracked fields exist on ' + objectApiName + ': ' + trackedFields
+                );
+            }
         }
 
         String query = 'SELECT Id, Field, OldValue, NewValue, CreatedById, CreatedBy.Name, CreatedDate'
@@ -72,7 +77,8 @@ public with sharing class FieldAuditTimelineController {
 
             String fieldLabel = fieldName;
             String fieldNameLower = fieldName.toLowerCase();
-            if (fieldMap.containsKey(fieldNameLower)) {
+            if (fieldMap.containsKey(fieldNameLower)
+                    && fieldMap.get(fieldNameLower).getDescribe().isAccessible()) {
                 fieldLabel = fieldMap.get(fieldNameLower).getDescribe().getLabel();
             }
 
