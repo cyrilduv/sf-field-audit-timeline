@@ -29,24 +29,26 @@ public with sharing class FieldAuditTimelineController {
 
         List<String> fieldList = new List<String>();
         if (String.isNotBlank(trackedFields)) {
+            Map<String, Schema.SObjectField> objFields = globalDescribe.get(objectApiName.toLowerCase())
+                .getDescribe().fields.getMap();
             for (String f : trackedFields.split(',')) {
                 String trimmed = f.trim();
-                if (String.isNotBlank(trimmed)) {
+                if (String.isNotBlank(trimmed) && objFields.containsKey(trimmed.toLowerCase())) {
                     fieldList.add(trimmed);
                 }
             }
         }
 
         String query = 'SELECT Id, Field, OldValue, NewValue, CreatedById, CreatedBy.Name, CreatedDate'
-            + ' FROM ' + String.escapeSingleQuotes(historyObjectName)
-            + ' WHERE ' + String.escapeSingleQuotes(parentIdField) + ' = :recordId'
+            + ' FROM ' + historyObjectName
+            + ' WHERE ' + parentIdField + ' = :recordId'
             + ' AND CreatedDate >= :windowStart';
 
         if (!fieldList.isEmpty()) {
             query += ' AND Field IN :fieldList';
         }
 
-        query += ' ORDER BY CreatedDate DESC LIMIT :maxRows';
+        query += ' WITH SECURITY_ENFORCED ORDER BY CreatedDate DESC LIMIT :maxRows';
 
         List<SObject> historyRecords = Database.query(query);
 
@@ -60,8 +62,7 @@ public with sharing class FieldAuditTimelineController {
             Object oldValue = rec.get('OldValue');
             Object newValue = rec.get('NewValue');
 
-            // Skip duplicate lookup entries that show raw IDs instead of names.
-            // Salesforce logs two history rows for lookup changes: one with IDs, one with names.
+            // Skip duplicate lookup entries that show raw IDs instead of names
             if (looksLikeSalesforceId(oldValue) || looksLikeSalesforceId(newValue)) {
                 continue;
             }

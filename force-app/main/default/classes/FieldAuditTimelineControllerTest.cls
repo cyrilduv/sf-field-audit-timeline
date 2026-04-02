@@ -15,15 +15,12 @@ private class FieldAuditTimelineControllerTest {
         );
         insert opp;
 
-        // Update StageName to generate history (stage change type)
         opp.StageName = 'Qualification';
         update opp;
 
-        // Update Amount to generate history (value change type)
         opp.Amount = 2000;
         update opp;
 
-        // Clear Amount to generate history (delete change type)
         opp.Amount = null;
         update opp;
     }
@@ -34,24 +31,31 @@ private class FieldAuditTimelineControllerTest {
 
         Test.startTest();
         List<Map<String, Object>> results = FieldAuditTimelineController.getFieldHistory(
-            'Opportunity',
-            opp.Id,
-            '',
-            30,
-            200
+            'Opportunity', opp.Id, '', 30, 200
         );
         Test.stopTest();
 
         System.assertNotEquals(null, results, 'Results should not be null');
-        // History entries should exist from setup updates
+        System.assert(!results.isEmpty(), 'Should have history entries from test setup');
+
         for (Map<String, Object> entry : results) {
-            System.assert(entry.containsKey('id'), 'Entry should have id');
-            System.assert(entry.containsKey('field'), 'Entry should have field');
-            System.assert(entry.containsKey('fieldLabel'), 'Entry should have fieldLabel');
-            System.assert(entry.containsKey('changeType'), 'Entry should have changeType');
-            System.assert(entry.containsKey('changedByName'), 'Entry should have changedByName');
-            System.assert(entry.containsKey('changedByInitials'), 'Entry should have changedByInitials');
-            System.assert(entry.containsKey('createdDate'), 'Entry should have createdDate');
+            System.assertNotEquals(null, entry.get('id'), 'Entry must have id');
+            System.assertNotEquals(null, entry.get('field'), 'Entry must have field');
+            System.assertNotEquals('', entry.get('fieldLabel'), 'fieldLabel should be resolved');
+            System.assertNotEquals(null, entry.get('changeType'), 'Entry must have changeType');
+            System.assertNotEquals(null, entry.get('changedByName'), 'Entry must have changedByName');
+            System.assertNotEquals(null, entry.get('createdDate'), 'Entry must have createdDate');
+
+            String changeType = (String) entry.get('changeType');
+            System.assert(
+                new Set<String>{ 'stage', 'owner', 'delete', 'value' }.contains(changeType),
+                'changeType must be one of stage/owner/delete/value, got: ' + changeType
+            );
+
+            String initials = (String) entry.get('changedByInitials');
+            System.assertNotEquals(null, initials, 'Initials should not be null');
+            System.assert(initials.length() >= 1 && initials.length() <= 2,
+                'Initials should be 1-2 characters');
         }
     }
 
@@ -62,15 +66,12 @@ private class FieldAuditTimelineControllerTest {
         Test.startTest();
         try {
             FieldAuditTimelineController.getFieldHistory(
-                'InvalidObjectXyz123',
-                opp.Id,
-                '',
-                30,
-                200
+                'InvalidObjectXyz123', opp.Id, '', 30, 200
             );
             System.assert(false, 'Should have thrown AuraHandledException');
         } catch (AuraHandledException e) {
-            System.assert(e.getMessage().contains('Invalid object API name'), 'Should contain error message');
+            System.assert(e.getMessage().contains('Invalid object API name'),
+                'Should contain error message');
         }
         Test.stopTest();
     }
@@ -81,35 +82,57 @@ private class FieldAuditTimelineControllerTest {
 
         Test.startTest();
         List<Map<String, Object>> results = FieldAuditTimelineController.getFieldHistory(
-            'Opportunity',
-            opp.Id,
-            'StageName',
-            30,
-            200
+            'Opportunity', opp.Id, 'StageName', 30, 200
         );
         Test.stopTest();
 
         for (Map<String, Object> entry : results) {
             System.assertEquals('StageName', entry.get('field'),
                 'Only StageName entries should be returned');
+            System.assertEquals('stage', entry.get('changeType'),
+                'StageName changes should be classified as stage');
         }
     }
 
     @IsTest
-    static void testGetFieldHistoryEmptyResults() {
+    static void testGetFieldHistoryInvalidTrackedFields() {
         Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'Test Opp' LIMIT 1];
 
         Test.startTest();
         List<Map<String, Object>> results = FieldAuditTimelineController.getFieldHistory(
-            'Opportunity',
-            opp.Id,
-            'NonExistentField__xyz',
-            30,
-            200
+            'Opportunity', opp.Id, 'NonExistentField__xyz', 30, 200
         );
         Test.stopTest();
 
-        System.assertEquals(0, results.size(), 'Should return empty list for non-matching field filter');
+        System.assertEquals(0, results.size(),
+            'Invalid tracked field names should be silently dropped, returning all unfiltered or empty');
+    }
+
+    @IsTest
+    static void testGetFieldHistoryMaxRows() {
+        Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'Test Opp' LIMIT 1];
+
+        Test.startTest();
+        List<Map<String, Object>> results = FieldAuditTimelineController.getFieldHistory(
+            'Opportunity', opp.Id, '', 30, 1
+        );
+        Test.stopTest();
+
+        System.assert(results.size() <= 1, 'Should respect maxRows limit of 1');
+    }
+
+    @IsTest
+    static void testGetFieldHistoryZeroDayWindow() {
+        Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'Test Opp' LIMIT 1];
+
+        Test.startTest();
+        List<Map<String, Object>> results = FieldAuditTimelineController.getFieldHistory(
+            'Opportunity', opp.Id, '', 0, 200
+        );
+        Test.stopTest();
+
+        // 0-day window means only changes from right now — may or may not return results
+        System.assertNotEquals(null, results, 'Should return a list (possibly empty), not null');
     }
 
     @IsTest
@@ -118,20 +141,21 @@ private class FieldAuditTimelineControllerTest {
 
         Test.startTest();
         List<Map<String, Object>> results = FieldAuditTimelineController.getFieldHistory(
-            'Opportunity',
-            opp.Id,
-            '',
-            30,
-            200
+            'Opportunity', opp.Id, '', 30, 200
         );
         Test.stopTest();
+
+        System.assert(!results.isEmpty(), 'Should have history entries from test setup');
 
         Set<String> changeTypes = new Set<String>();
         for (Map<String, Object> entry : results) {
             changeTypes.add((String) entry.get('changeType'));
+            System.assertNotEquals('', entry.get('fieldLabel'), 'fieldLabel should be resolved');
         }
-        // At minimum we should see stage and value types from our setup
-        // delete type depends on how Amount null is tracked
+
+        // Setup creates StageName change → 'stage', and Amount changes → 'value'/'delete'
+        System.assert(changeTypes.contains('stage') || changeTypes.contains('value'),
+            'Should contain at least stage or value change types from setup data');
     }
 
     @IsTest
@@ -154,32 +178,9 @@ private class FieldAuditTimelineControllerTest {
             FieldAuditTimelineController.getRecordName('InvalidObjectXyz123', opp.Id);
             System.assert(false, 'Should have thrown AuraHandledException');
         } catch (AuraHandledException e) {
-            System.assert(e.getMessage().contains('Invalid object API name'), 'Should contain error message');
+            System.assert(e.getMessage().contains('Invalid object API name'),
+                'Should contain error message');
         }
         Test.stopTest();
-    }
-
-    @IsTest
-    static void testComputeInitialsSingleName() {
-        // Test via getFieldHistory — initials for single-word usernames
-        // are covered by the production code path
-        Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'Test Opp' LIMIT 1];
-
-        Test.startTest();
-        List<Map<String, Object>> results = FieldAuditTimelineController.getFieldHistory(
-            'Opportunity',
-            opp.Id,
-            '',
-            30,
-            200
-        );
-        Test.stopTest();
-
-        for (Map<String, Object> entry : results) {
-            String initials = (String) entry.get('changedByInitials');
-            System.assertNotEquals(null, initials, 'Initials should not be null');
-            System.assert(initials.length() >= 1 && initials.length() <= 2,
-                'Initials should be 1-2 characters');
-        }
     }
 }
